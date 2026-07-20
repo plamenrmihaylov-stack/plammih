@@ -1,0 +1,27 @@
+# cloudbuild_enforcer.yaml
+# This file defines the policy for enforcing cloud build usage.
+# Customize the policy rules to match your team's CI expectations.
+
+policy:
+  version: 1
+  enforce:
+    - name: require-cloud-build
+      description: "Force all CI build jobs to use the approved cloud build environment."
+      rules:
+        - id: allow-approved-builders
+          action: require
+          target: builders
+          allowed:
+            - "gcr.io/cloud-builders/docker"
+            - "gcr.io/cloud-builders/gcloud"
+            - "gcr.io/cloud-builders/gsutil"
+        - id: require-build-config
+          action: require
+          target: file
+          pattern: "cloudbuild.yaml"
+        - id: restrict-local-builds
+          action: deny
+          target: tools
+          disallowed:
+            - "local-docker"
+            - "local-build"
