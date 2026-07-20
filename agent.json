@@ -1,0 +1,6 @@
+{
+  "name": "cyberspace-ecosystem-agent",
+  "description": "Local agent scaffold for a fork of emptyncrypt-hue/Ecosystem",
+  "sourceRepository": "https://github.com/emptyncrypt-hue/Ecosystem",
+  "targetProject": "Device Policy Framework"
+}
