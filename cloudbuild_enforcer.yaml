@@ -18,7 +18,7 @@ policy:
         - id: require-build-config
           action: require
           target: file
-          pattern: "cloudbuild.yaml"
+          pattern: "cloudbuild.yml"
         - id: restrict-local-builds
           action: deny
           target: tools
