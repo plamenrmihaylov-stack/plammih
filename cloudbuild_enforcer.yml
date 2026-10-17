@@ -1,4 +1,4 @@
-# cloudbuild_enforcer.yaml
+# cloudbuild_enforcer.yml
 # This file defines the policy for enforcing cloud build usage.
 # Customize the policy rules to match your team's CI expectations.
 
@@ -18,7 +18,7 @@ policy:
         - id: require-build-config
           action: require
           target: file
-          pattern: "cloudbuild.yaml"
+          pattern: "cloudbuild.yml"
         - id: restrict-local-builds
           action: deny
           target: tools

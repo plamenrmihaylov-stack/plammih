@@ -1,0 +1,11 @@
+# Builds and publishes the plammih HTTP server container.
+# Configure Cloud Build with permission to push to the chosen image registry.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - gcr.io/$PROJECT_ID/plammih:$COMMIT_SHA
+      - .
+images:
+  - gcr.io/$PROJECT_ID/plammih:$COMMIT_SHA
