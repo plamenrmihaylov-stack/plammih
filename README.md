@@ -2,23 +2,25 @@
 
 Ecosystem and cyberspace for forced forks to the cloud.
 
-## Application
+## Application and HTTP headers
 
-The HTTP server is implemented in `server.mjs`. It listens on `0.0.0.0` and uses the `PORT` environment variable (default `3000`) so it can run in a container.
+The HTTP server is implemented directly in `server.mjs`. It listens on `0.0.0.0` and uses the `PORT` environment variable (default `3000`) so it can run in a container. The repository's Kubernetes Service exposes port 80 and forwards traffic to the named container port.
+
+Application responses set defensive headers including `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, a restrictive `Content-Security-Policy`, and `Cache-Control: no-store`. The Node application does not intentionally advertise a server banner. A `Server` header observed in production may be added by an upstream proxy/load balancer or by a different image; verify the deployed image digest and inspect the response at each hop before attributing it to this application.
 
 ## Google Kubernetes Engine deployment
 
-The repository includes a Docker image build and GKE deployment pipeline in `cloudbuild.yml`, plus Kubernetes resources in `k8s/`.
+The repository includes a Docker image build and GKE deployment pipeline in `cloudbuild.yml`, plus Kubernetes resources in `k8s/`. The manifest currently defines a direct `LoadBalancer` Service; this repository does not include an Ingress or ingress-controller configuration. Therefore, do not assume that an NGINX ingress or sidecar is configured by these files.
 
 ### Defaults
 
 - Google Cloud project: `driven-crawler-502217f6`
 - Artifact Registry region: `europe-west1`
-- Artifact Registry repository: `plammih-images`
+- Artifact Registry repository: `dunesub-artifact-repo`
 - GKE cluster: `plammih-gke`
 - GKE location: `europe-west1`
 
-These are configuration defaults, not confirmation that the resources already exist. Change the Cloud Build substitutions and the image placeholder in `k8s/deployment.yaml` together if using a different registry location or repository.
+These are configuration defaults, not confirmation that the resources already exist. The Cloud Build substitution `_AR_REPOSITORY` and the image placeholder in `k8s/deployment.yaml` use the canonical repository name `dunesub-artifact-repo`. If changing the registry location or repository, update both the substitution and image placeholder together.
 
 ### One-time Google Cloud setup
 
@@ -32,7 +34,7 @@ gcloud services enable \
   artifactregistry.googleapis.com \
   container.googleapis.com
 
-gcloud artifacts repositories create plammih-images \
+gcloud artifacts repositories create dunesub-artifact-repo \
   --repository-format=docker \
   --location=europe-west1 \
   --description="Container images for plammih"
@@ -43,7 +45,7 @@ gcloud container clusters create-auto plammih-gke \
   --project=driven-crawler-502217f6
 ```
 
-If a cluster already exists, inspect it instead of creating another:
+If a cluster or repository already exists, inspect it instead of creating another:
 ```bash
 gcloud container clusters list --project=driven-crawler-502217f6
 gcloud artifacts repositories list --project=driven-crawler-502217f6 --location=europe-west1
@@ -53,7 +55,7 @@ gcloud artifacts repositories list --project=driven-crawler-502217f6 --location=
 
 The Cloud Build service account needs permission to write images to Artifact Registry and deploy workloads to the selected GKE cluster. Grant least-privilege roles to the actual service account used by the build (the account can vary by project configuration):
 
-- Artifact Registry Writer (`roles/artifactregistry.writer`) on `plammih-images`
+- Artifact Registry Writer (`roles/artifactregistry.writer`) scoped to repository `dunesub-artifact-repo`
 - Kubernetes Engine Developer (`roles/container.developer`) on the project/cluster
 - Service Account User (`roles/iam.serviceAccountUser`) on the GKE node/workload service account if required by your cluster's IAM configuration
 
@@ -61,7 +63,7 @@ Check the active Cloud Build service account in Google Cloud Console before appl
 
 ### Build and deploy
 
-After creating the repository and cluster, configure a Cloud Build trigger for this GitHub repository on branch `main`, using `cloudbuild.yml`. The defaults above can be overridden in the trigger's substitution variables (`_AR_LOCATION`, `_AR_REPOSITORY`, `_GKE_LOCATION`, and `_GKE_CLUSTER`).
+Configure a Cloud Build trigger for this GitHub repository on branch `main`, using `cloudbuild.yml`. The defaults above can be overridden in the trigger's substitution variables (`_AR_LOCATION`, `_AR_REPOSITORY`, `_GKE_LOCATION`, and `_GKE_CLUSTER`). The canonical default for `_AR_REPOSITORY` is `dunesub-artifact-repo`.
 
 To run a build manually from a local checkout with Google Cloud CLI authenticated:
 ```bash
@@ -76,4 +78,4 @@ The Kubernetes Service is `type: LoadBalancer`, which provisions an external loa
 kubectl get service plammih
 ```
 
-Before production use, configure HTTPS/TLS, monitoring, and an appropriate security policy. The sample server currently returns a simple plain-text response.
+For production, terminate TLS at a deliberately configured HTTPS-capable edge, enforce an appropriate security policy there, and verify which hop adds response headers. This repository currently defines a direct HTTP LoadBalancer and does not configure TLS, an Ingress, or a proxy sidecar. Do not add HSTS until HTTPS is correctly enforced for the public endpoint.
