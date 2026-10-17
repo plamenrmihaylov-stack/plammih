@@ -15,6 +15,7 @@ policy:
             - "gcr.io/cloud-builders/docker"
             - "gcr.io/cloud-builders/gcloud"
             - "gcr.io/cloud-builders/gsutil"
+            - "gcr.io/cloud-builders/gke-deploy"
         - id: require-build-config
           action: require
           target: file
