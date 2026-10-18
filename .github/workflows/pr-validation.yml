@@ -1,0 +1,44 @@
+name: PR documentation and checksum-ledger validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "scripts/validate_checksum_ledger.py"
+      - ".github/workflows/pr-validation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "scripts/validate_checksum_ledger.py"
+      - ".github/workflows/pr-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-docs:
+    name: Validate Markdown and checksum ledger
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate support workflow and checksum ledger
+        run: python scripts/validate_checksum_ledger.py docs/agile-business-solutions-support.md
+
+      - name: Lint Markdown
+        run: |
+          npx --yes markdownlint-cli2@0.18.1 \
+            "docs/**/*.md" \
+            "#node_modules"
