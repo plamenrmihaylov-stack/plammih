@@ -18,7 +18,7 @@ The repository includes a Docker image build and GKE deployment pipeline in `clo
 - GKE cluster: `plammih-gke`
 - GKE location: `europe-west1`
 
-These are configuration defaults, not confirmation that the resources already exist. Change the Cloud Build substitutions and the image placeholder in `k8s/deployment.yaml` together if using a different registry location or repository.
+These are configuration defaults, not confirmation that the resources already exist. Change the Cloud Build substitutions and the image placeholder in `k8s/deployment.yml` together if using a different registry location or repository.
 
 ### One-time Google Cloud setup
 
