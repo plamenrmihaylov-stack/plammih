@@ -14,11 +14,11 @@ The repository includes a Docker image build and GKE deployment pipeline in `clo
 
 - Google Cloud project: `driven-crawler-502217f6`
 - Artifact Registry region: `europe-west1`
-- Artifact Registry repository: `plammih-images`
+- Artifact Registry repository: `dunesub-artifact-repo`
 - GKE cluster: `plammih-gke`
 - GKE location: `europe-west1`
 
-These are configuration defaults, not confirmation that the resources already exist. Change the Cloud Build substitutions and the image placeholder in `k8s/deployment.yaml` together if using a different registry location or repository.
+These are configuration defaults, not confirmation that the resources already exist. Change the Cloud Build substitutions and the image placeholder in `k8s/deployment.yml` together if using a different registry location or repository.
 
 ### One-time Google Cloud setup
 
@@ -32,7 +32,7 @@ gcloud services enable \
   artifactregistry.googleapis.com \
   container.googleapis.com
 
-gcloud artifacts repositories create plammih-images \
+gcloud artifacts repositories create dunesub-artifact-repo \
   --repository-format=docker \
   --location=europe-west1 \
   --description="Container images for plammih"
@@ -53,7 +53,7 @@ gcloud artifacts repositories list --project=driven-crawler-502217f6 --location=
 
 The Cloud Build service account needs permission to write images to Artifact Registry and deploy workloads to the selected GKE cluster. Grant least-privilege roles to the actual service account used by the build (the account can vary by project configuration):
 
-- Artifact Registry Writer (`roles/artifactregistry.writer`) on `plammih-images`
+- Artifact Registry Writer (`roles/artifactregistry.writer`) on `dunesub-artifact-repo`
 - Kubernetes Engine Developer (`roles/container.developer`) on the project/cluster
 - Service Account User (`roles/iam.serviceAccountUser`) on the GKE node/workload service account if required by your cluster's IAM configuration
 
