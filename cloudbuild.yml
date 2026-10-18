@@ -2,7 +2,7 @@
 # Defaults target europe-west1; override substitutions in the Cloud Build trigger if needed.
 substitutions:
   _AR_LOCATION: europe-west1
-  _AR_REPOSITORY: plammih-images
+  _AR_REPOSITORY: dunesub-artifact-repo
   _GKE_LOCATION: europe-west1
   _GKE_CLUSTER: plammih-gke
 
