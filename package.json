@@ -1,0 +1,14 @@
+{
+  "name": "plammih",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Cloudflare Workers entry point for plammih",
+  "scripts": {
+    "build": "wrangler deploy --dry-run",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
