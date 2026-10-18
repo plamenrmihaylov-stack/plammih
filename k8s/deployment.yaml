@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: plammih
-          image: europe-west1-docker.pkg.dev/driven-crawler-502217f6/plammih-images/plammih:latest
+          image: europe-west1-docker.pkg.dev/driven-crawler-502217f6/dunesub-artifact-repo/plammih:latest
           ports:
             - name: http
               containerPort: 3000
