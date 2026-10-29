@@ -1,0 +1,47 @@
+name: Cloudflare Worker validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "worker.mjs"
+      - "wrangler.toml"
+      - "package.json"
+      - "tests/**"
+      - ".github/workflows/cloudflare-worker.yml"
+  push:
+    branches: [main]
+    paths:
+      - "worker.mjs"
+      - "wrangler.toml"
+      - "package.json"
+      - "tests/**"
+      - ".github/workflows/cloudflare-worker.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-worker-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Test Worker endpoints
+        run: npm test
+
+      - name: Validate and bundle Worker
+        run: npm run build
