@@ -1,0 +1,10 @@
+# SHA-256 baseline for tracked source/configuration files.
+# Format: <64 lowercase hex characters><two spaces><repository-relative path>
+# Update only after reviewing the intended file changes.
+208c78850cdbf12d9cadc48d33da13f11abfd54a29b642044eea02176450f60b  README.md
+5d8523ef830aa71bf02268d8dcdffbef92156175f0b9878b7e3873b2c266f367  cloudbuild.yml
+b112ee6261939c8419786f1c0ba96df82a4a8235957eb996369a6a144753176a  k8s/deployment.yml
+cc051c313943bf0db75fc8e5ccff0e278feecf11b3b90f67454cc21d7c9bb792  k8s/network-policy.yml
+e752957cd803530e8c4c403b54ed9ee83e84c0b61ac9ac63bfeb147d004f8d6c  server.mjs
+98524702d54d6b2779cee729a3c160c07312f86ace51cb8ffc0d987e4e87113e  worker.mjs
+ef5be1afc9c865ab36a9041bfbd0ad3499829bd6a5c6a6d59c4ee26d88e9f722  package.json
