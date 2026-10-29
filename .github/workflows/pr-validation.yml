@@ -3,16 +3,8 @@ name: PR documentation and checksum-ledger validation
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "docs/**"
-      - "scripts/validate_checksum_ledger.py"
-      - ".github/workflows/pr-validation.yml"
   push:
     branches: [main]
-    paths:
-      - "docs/**"
-      - "scripts/validate_checksum_ledger.py"
-      - ".github/workflows/pr-validation.yml"
 
 permissions:
   contents: read
@@ -33,6 +25,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Verify file SHA-256 manifest
+        run: python scripts/verify_manifest_checksums.py
 
       - name: Validate support workflow and checksum ledger
         run: python scripts/validate_checksum_ledger.py docs/agile-business-solutions-support.md
