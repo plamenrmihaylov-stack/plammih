@@ -2,6 +2,7 @@ import test, { before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
+import { fileURLToPath } from "node:url";
 
 let child;
 let baseUrl;
@@ -21,7 +22,7 @@ async function unusedPort() {
 before(async () => {
   const port = await unusedPort();
   baseUrl = `http://127.0.0.1:${port}`;
-  child = spawn(process.execPath, ["server.mjs"], {
+  child = spawn(process.execPath, [fileURLToPath(new URL("../server.mjs", import.meta.url))], {
     env: { ...process.env, PORT: String(port) },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -60,6 +61,7 @@ test("health endpoint returns 200, ok body, and defensive headers", async () => 
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
   assert.equal(response.headers.get("x-frame-options"), "DENY");
   assert.equal(response.headers.get("content-security-policy"), "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+  assert.equal(response.headers.get("server"), null);
 });
 
 test("root endpoint preserves the service greeting and defensive headers", async () => {
