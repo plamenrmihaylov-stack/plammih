@@ -1,0 +1,38 @@
+name: Node server validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "server.mjs"
+      - "tests/**"
+      - "Dockerfile"
+      - ".github/workflows/node-server-validation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "server.mjs"
+      - "tests/**"
+      - "Dockerfile"
+      - ".github/workflows/node-server-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node-server-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-server:
+    name: Test Node HTTP server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run server integration tests
+        run: node --test tests/server.test.mjs
