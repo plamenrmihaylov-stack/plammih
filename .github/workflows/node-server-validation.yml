@@ -8,6 +8,7 @@ on:
       - "tests/**"
       - "Dockerfile"
       - ".github/workflows/node-server-validation.yml"
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
