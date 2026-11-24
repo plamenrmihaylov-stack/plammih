@@ -1,9 +1,10 @@
 # SHA-256 baseline for tracked source/configuration files.
 # Format: <64 lowercase hex characters><two spaces><repository-relative path>
 # Update only after reviewing the intended file changes.
-227c88a761cf3cac44093ad077fade98c442f1f53de88c7e0b8d936617dbccd4  README.md
+bd497e7f02492be0af1a1ea10288415945dbd2b179d868184a369ef9a1ba11f6  README.md
 564f880d2ce9dd48a6f706418db7f203ea476d92a3f147a00c08255e242913c9  cloudbuild.yml
-0f6b1dbed616c51082b074a26e90b36d893918ac1b137f74ca67d8e2b8990cbb  cloudbuild-deploy.yml
+fa30e997769259d2123b689b450ba68dcbdab2df1a04afdeab73065d7c342623  cloudbuild-deploy.yml
+f013ac36da6c5d13a26d229ad229221a8351ca26d13be340c626e1346619fe2a  cloudbuild-deploy-production.yml
 b112ee6261939c8419786f1c0ba96df82a4a8235957eb996369a6a144753176a  k8s/deployment.yml
 cc051c313943bf0db75fc8e5ccff0e278feecf11b3b90f67454cc21d7c9bb792  k8s/network-policy.yml
 db9cf4362ea0a74e22982b0eccdc26ebdefb20aef73cfaa49621070f641c18cf  server.mjs
