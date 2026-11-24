@@ -2,11 +2,22 @@
 
 Ecosystem and cyberspace for forced forks to the cloud.
 
+## Public professional identity website
+
+The GKE-hosted Node.js application serves the DuneSub professional identity website through the intended Cloudflare proxy -> GKE Service -> application path.
+
+- `/` serves the professional profile and Schema.org JSON-LD.
+- `/robots.txt` publishes crawler directives and the sitemap location.
+- `/sitemap.xml` publishes the canonical homepage URL.
+- `/healthz` remains the Kubernetes health-check endpoint.
+
+The Cloudflare Worker entry point is a separate target and is not assumed to serve the canonical website origin. See [the identity implementation notes](docs/identity-implementation.md).
+
 ## Application and HTTP headers
 
 The HTTP server is implemented directly in `server.mjs`. It listens on `0.0.0.0` and uses the `PORT` environment variable (default `3000`) so it can run in a container. The Kubernetes Service exposes port 80 and forwards traffic to the named container port.
 
-Application responses set defensive headers including `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, a restrictive `Content-Security-Policy`, and `Cache-Control: no-store`. The Node application does not intentionally advertise a server banner. A `Server` header observed in production may be added by an upstream proxy/load balancer or by a different image; verify the deployed image digest and inspect the response at each hop before attributing it to this application.
+Application responses set defensive headers including `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, a restrictive `Content-Security-Policy`, and explicit cache controls. The Node application does not intentionally advertise a server banner. A `Server` header observed in production may be added by an upstream proxy/load balancer or by a different image; verify the deployed image digest and inspect the response at each hop before attributing it to this application.
 
 ## Google Kubernetes Engine deployment
 
@@ -20,65 +31,20 @@ The repository includes a Docker image build and GKE deployment pipeline in `clo
 - GKE cluster: `plammih-gke`
 - GKE location: `europe-west1`
 
-These are configuration defaults, not confirmation that the resources already exist. The Cloud Build substitution `_AR_REPOSITORY` and image placeholder in `k8s/deployment.yml` use the canonical repository name `dunesub-artifact-repo`. If changing the registry location or repository, update both the substitution and image placeholder together.
-
-### One-time Google Cloud setup
-
-Run these commands from an authenticated Google Cloud CLI session with permission to enable APIs, create Artifact Registry repositories and GKE clusters, and grant IAM roles. Confirm billing is enabled first.
-
-```bash
-gcloud config set project driven-crawler-502217f6
-
-gcloud services enable \
-  cloudbuild.googleapis.com \
-  artifactregistry.googleapis.com \
-  container.googleapis.com
-
-gcloud artifacts repositories create dunesub-artifact-repo \
-  --repository-format=docker \
-  --location=europe-west1 \
-  --description="Container images for plammih"
-
-# Create a regional Autopilot cluster only if one does not already exist.
-gcloud container clusters create-auto plammih-gke \
-  --region=europe-west1 \
-  --project=driven-crawler-502217f6
-```
-
-If a cluster or repository already exists, inspect it instead of creating another:
-
-```bash
-gcloud container clusters list --project=driven-crawler-502217f6
-gcloud artifacts repositories list --project=driven-crawler-502217f6 --location=europe-west1
-```
-
-### Cloud Build permissions
-
-The Cloud Build service account needs permission to write images to Artifact Registry and deploy workloads to the selected GKE cluster. Grant least-privilege roles to the actual service account used by the build (the account can vary by project configuration):
-
-- Artifact Registry Writer (`roles/artifactregistry.writer`) scoped to repository `dunesub-artifact-repo`
-- Kubernetes Engine Developer (`roles/container.developer`) on the project/cluster
-- Service Account User (`roles/iam.serviceAccountUser`) on the GKE node/workload service account if required by your cluster's IAM configuration
-
-Check the active Cloud Build service account in Google Cloud Console before applying IAM bindings. Do not commit service-account keys or credentials to this repository.
+These are configuration defaults, not confirmation that the resources already exist.
 
 ### Build and deploy
 
-Configure a Cloud Build trigger for this GitHub repository on branch `main`, using `cloudbuild.yml`. The defaults above can be overridden in the trigger's substitution variables (`_AR_LOCATION`, `_AR_REPOSITORY`, `_GKE_LOCATION`, and `_GKE_CLUSTER`). The canonical default for `_AR_REPOSITORY` is `dunesub-artifact-repo`.
+Configure a Cloud Build trigger for the intended deployment branch only after review and approval. The build pipeline includes a GKE deployment step; do not trigger it for this review branch.
 
-To run a build manually from a local checkout with Google Cloud CLI authenticated:
+The Kubernetes Service is `type: LoadBalancer`, which provisions an external load balancer and may incur charges. For production, terminate TLS at a deliberately configured HTTPS-capable edge and verify which hop adds response headers.
 
-```bash
-gcloud builds submit . \
-  --project=driven-crawler-502217f6 \
-  --region=europe-west1 \
-  --config=cloudbuild.yml
-```
+## Validation
 
-The Kubernetes Service is `type: LoadBalancer`, which provisions an external load balancer and may incur charges. After deployment, get its external IP with:
+Run the local application tests with:
 
 ```bash
-kubectl get service plammih
+node --test tests/server.test.mjs
 ```
 
-For production, terminate TLS at a deliberately configured HTTPS-capable edge, enforce an appropriate security policy there, and verify which hop adds response headers. This repository currently defines a direct HTTP LoadBalancer and does not configure TLS, an Ingress, or a proxy sidecar. Do not add HSTS until HTTPS is correctly enforced for the public endpoint.
+The identity website CI workflow runs this validation on relevant pull requests and pushes to `main`. This branch does not change production infrastructure or deploy the application.
