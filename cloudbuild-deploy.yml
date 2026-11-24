@@ -1,4 +1,5 @@
-# Explicit production release pipeline. Invoke manually after target and origin verification.
+# Explicit replica release pipeline. Invoke manually after target and origin verification.
+# This is the active organizational replica, not the primary production target.
 substitutions:
   _EXPECTED_PROJECT_ID: driven-crawler-502217f6
   _GKE_LOCATION: europe-west1
@@ -8,14 +9,14 @@ substitutions:
   _IMAGE_TAG: REPLACE_WITH_REVIEWED_COMMIT_SHA
 
 steps:
-  - id: Verify deployment target
+  - id: Verify replica deployment target
     name: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable
     entrypoint: bash
     args:
       - -ceu
       - |
         if [[ "$PROJECT_ID" != "${_EXPECTED_PROJECT_ID}" ]]; then
-          echo "Refusing deployment: Cloud Build project '$PROJECT_ID' is not expected project '${_EXPECTED_PROJECT_ID}'." >&2
+          echo "Refusing replica deployment: Cloud Build project '$PROJECT_ID' is not expected project '${_EXPECTED_PROJECT_ID}'." >&2
           exit 1
         fi
         if [[ "${_IMAGE_TAG}" == "REPLACE_WITH_REVIEWED_COMMIT_SHA" ]]; then
@@ -27,8 +28,8 @@ steps:
           --location="${_GKE_LOCATION}" \
           --format='value(name)' | grep -Fx "${_GKE_CLUSTER}"
 
-  - id: Deploy reviewed image to GKE
-    name: gcr.io/cloud-builders/gke-deploy
+  - id: Deploy reviewed image to organizational replica
+    name: gcr.io/google-containers/gke-deploy
     args:
       - run
       - --filename=k8s
