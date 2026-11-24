@@ -12,6 +12,22 @@ The repository proves the intended Kubernetes Service shape, not the live Cloudf
 
 The Cloudflare Worker configured by `wrangler.toml` is a separate deployment target. Its existence does not prove it is in the request path for `dunesub.de`; the serving architecture supplied for this task places Cloudflare proxy in front of GKE.
 
+## GKE deployment topology
+
+The two target roles are distinct and must not be conflated:
+
+| Role | GCP project | GKE location | Cluster |
+|---|---|---|---|
+| Primary production | `dune-sub-core-prod` | `europe-west3` | `dune-sub-vpc-cluster` |
+| Active organizational replica | `driven-crawler-502217f6` | `europe-west1` | `plammih-gke` |
+
+The build pipeline publishes the reviewed image to the organizational project's Artifact Registry:
+`europe-west1-docker.pkg.dev/driven-crawler-502217f6/dunesub-artifact-repo/plammih:<commit-sha>`.
+
+Use `cloudbuild-deploy-production.yml` for the primary production cluster. It runs from the image project, checks the production cluster in `dune-sub-core-prod/europe-west3`, and deploys the immutable reviewed image across projects. The production GKE node/workload identity needs Artifact Registry Reader access to the source repository; the Cloud Build identity needs the minimum cross-project GKE deployment permissions. Verify both before execution.
+
+Use `cloudbuild-deploy.yml` for the active organizational replica only. It checks `driven-crawler-502217f6/europe-west1/plammih-gke`. Never use the replica pipeline as a substitute for primary production.
+
 ## Public routes
 
 - `/`: professional profile and Schema.org JSON-LD graph.
@@ -34,18 +50,20 @@ The Node.js server serves an explicit route allowlist, supports GET and HEAD onl
 ## Build, deploy, and release gates
 
 - `cloudbuild.yml` builds and publishes a uniquely tagged image only; it does not mutate GKE.
-- `cloudbuild-deploy.yml` is a separate, explicitly invoked deployment pipeline. It checks the configured Google Cloud project and cluster name before applying manifests.
+- The two manual deployment pipelines are role-specific and require an explicit reviewed image tag.
 - CI tests and builds the container on pull requests. CI never deploys.
-- A production deployment requires a verified target project, cluster, current workload, Cloudflare origin target, and explicit release approval. The project/cluster defaults are configuration hints, not proof of the active production cluster.
+- Deploy primary production first, validate health and Cloudflare origin routing, then deploy the same image tag to the organizational replica.
+- A release requires verified IAM access, current workload health, Cloudflare origin target, and a recorded rollback image digest.
 
 ## Operational verification checklist
 
-Before production rollout, an operator with read access should confirm:
+Before either rollout, an operator with read access should confirm:
 
-1. The active GCP project and cluster identity, location, namespace, and current Deployment image digest.
+1. The active GCP project and exact cluster identity/location for the selected role.
 2. The `plammih` Service external IP and its port 80 -> Pod port 3000 mapping.
-3. Cloudflare's proxied DNS record for `dunesub.de` resolves to that exact origin IP (or the documented origin load balancer).
+3. Cloudflare's proxied DNS record for `dunesub.de` resolves to the production origin IP (or documented origin load balancer).
 4. Cloudflare SSL/TLS mode and origin certificate validate HTTPS from edge to origin; do not weaken certificate validation to make a rollout work.
-5. The existing workload is healthy and rollback image digest is recorded.
+5. The existing production workload is healthy and rollback image digest is recorded.
+6. The production GKE node/workload identity can pull the cross-project image and the Cloud Build identity can deploy to the production cluster.
 
-This branch does not change Cloudflare or GKE resources and does not deploy itself.
+The repository changes do not modify Cloudflare DNS/TLS settings or perform a GKE deployment.
