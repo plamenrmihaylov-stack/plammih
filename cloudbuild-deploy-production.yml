@@ -33,7 +33,7 @@ steps:
           --project="${_IMAGE_PROJECT_ID}" >/dev/null
 
   - id: Deploy reviewed image to primary production
-    name: gcr.io/google-containers/gke-deploy
+    name: gcr.io/cloud-builders/gke-deploy
     args:
       - run
       - --filename=k8s
