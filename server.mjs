@@ -23,26 +23,26 @@ const server = createServer(async (req, res) => {
   const method = req.method ?? 'GET';
   const url = new URL(req.url ?? '/', 'http://localhost');
 
+  if (method !== 'GET' && method !== 'HEAD') {
+    res.writeHead(405, { ...securityHeaders, 'Content-Type': 'text/plain; charset=utf-8', Allow: 'GET, HEAD' });
+    res.end(method === 'HEAD' ? undefined : 'Method Not Allowed\\n');
+    return;
+  }
+
   if (url.pathname === '/healthz') {
     res.writeHead(200, {
       ...securityHeaders,
       'Content-Type': 'text/plain; charset=utf-8',
       'Cache-Control': 'no-store',
     });
-    res.end(method === 'HEAD' ? undefined : 'ok\n');
-    return;
-  }
-
-  if (method !== 'GET' && method !== 'HEAD') {
-    res.writeHead(405, { ...securityHeaders, 'Content-Type': 'text/plain; charset=utf-8', Allow: 'GET, HEAD' });
-    res.end(method === 'HEAD' ? undefined : 'Method Not Allowed\n');
+    res.end(method === 'HEAD' ? undefined : 'ok\\n');
     return;
   }
 
   const route = routes.get(url.pathname);
   if (!route) {
     res.writeHead(404, { ...securityHeaders, 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(method === 'HEAD' ? undefined : 'Not Found\n');
+    res.end(method === 'HEAD' ? undefined : 'Not Found\\n');
     return;
   }
 
@@ -57,7 +57,7 @@ const server = createServer(async (req, res) => {
   } catch (error) {
     console.error('Failed to serve public asset:', error);
     res.writeHead(500, { ...securityHeaders, 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(method === 'HEAD' ? undefined : 'Internal Server Error\n');
+    res.end(method === 'HEAD' ? undefined : 'Internal Server Error\\n');
   }
 });
 
