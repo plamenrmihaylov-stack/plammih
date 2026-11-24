@@ -8,6 +8,8 @@ on:
       - "public/**"
       - "tests/server.test.mjs"
       - "Dockerfile"
+      - "cloudbuild.yml"
+      - "cloudbuild-deploy.yml"
       - ".github/workflows/identity-site.yml"
   push:
     branches: [main]
@@ -16,6 +18,8 @@ on:
       - "public/**"
       - "tests/server.test.mjs"
       - "Dockerfile"
+      - "cloudbuild.yml"
+      - "cloudbuild-deploy.yml"
       - ".github/workflows/identity-site.yml"
 
 permissions:
@@ -35,5 +39,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - name: Validate server and identity site
+      - name: Test HTTP application and identity metadata
         run: node --test tests/server.test.mjs
+      - name: Build container image (no push, no deploy)
+        run: docker build --tag plammih:ci .
