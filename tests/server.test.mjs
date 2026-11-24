@@ -22,7 +22,7 @@ async function unusedPort() {
 
 before(async () => {
   const port = await unusedPort();
-  baseUrl = \`http://127.0.0.1:\${port}\`;
+  baseUrl = "http://127.0.0.1:" + port;
   child = spawn(process.execPath, [fileURLToPath(new URL("../server.mjs", import.meta.url))], {
     env: { ...process.env, PORT: String(port) },
     stdio: ["ignore", "pipe", "pipe"],
@@ -34,7 +34,7 @@ before(async () => {
 
   const deadline = Date.now() + 5000;
   while (Date.now() < deadline) {
-    if (child.exitCode !== null) throw new Error(\`server exited early (code \${child.exitCode}): \${output}\`);
+    if (child.exitCode !== null) throw new Error("server exited early (code " + child.exitCode + "): " + output);
     try {
       const response = await fetch(baseUrl);
       await response.arrayBuffer();
@@ -43,7 +43,7 @@ before(async () => {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
-  throw new Error(\`server did not become ready: \${output}\`);
+  throw new Error("server did not become ready: " + output);
 });
 
 after(() => {
@@ -51,7 +51,7 @@ after(() => {
 });
 
 test("health endpoint remains available with defensive headers", async () => {
-  const response = await fetch(\`\${baseUrl}/healthz\`);
+  const response = await fetch(baseUrl + "/healthz");
   assert.equal(response.status, 200);
   assert.equal(await response.text(), "ok\n");
   assert.equal(response.headers.get("content-type"), "text/plain; charset=utf-8");
@@ -61,10 +61,10 @@ test("health endpoint remains available with defensive headers", async () => {
   assert.equal(response.headers.get("x-frame-options"), "DENY");
   assert.equal(response.headers.get("server"), null);
 
-  const head = await fetch(\`\${baseUrl}/healthz\`, { method: "HEAD" });
+  const head = await fetch(baseUrl + "/healthz", { method: "HEAD" });
   assert.equal(head.status, 200);
   assert.equal(await head.text(), "");
-  const unsupported = await fetch(\`\${baseUrl}/healthz\`, { method: "POST" });
+  const unsupported = await fetch(baseUrl + "/healthz", { method: "POST" });
   assert.equal(unsupported.status, 405);
   assert.equal(unsupported.headers.get("allow"), "GET, HEAD");
 });
@@ -86,10 +86,8 @@ test("homepage serves the professional identity and structured data", async () =
 });
 
 test("robots and sitemap are served from the canonical host", async () => {
-  const [robots, sitemap] = await Promise.all([
-    fetch(\`\${baseUrl}/robots.txt\`),
-    fetch(\`\${baseUrl}/sitemap.xml\`),
-  ]);
+  const robots = await fetch(baseUrl + "/robots.txt");
+  const sitemap = await fetch(baseUrl + "/sitemap.xml");
   assert.equal(robots.status, 200);
   assert.match(await robots.text(), /Sitemap: https:\/\/dunesub\.de\/sitemap\.xml/);
   assert.equal(sitemap.status, 200);
@@ -99,7 +97,7 @@ test("robots and sitemap are served from the canonical host", async () => {
 });
 
 test("unknown paths return 404 and unsupported methods return 405", async () => {
-  const missing = await fetch(\`\${baseUrl}/missing\`);
+  const missing = await fetch(baseUrl + "/missing");
   assert.equal(missing.status, 404);
   const method = await fetch(baseUrl, { method: "POST" });
   assert.equal(method.status, 405);
