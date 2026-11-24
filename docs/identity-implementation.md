@@ -41,6 +41,7 @@ The Node.js server serves an explicit route allowlist, supports GET and HEAD onl
 ## Operational verification checklist
 
 Before production rollout, an operator with read access should confirm:
+
 1. The active GCP project and cluster identity, location, namespace, and current Deployment image digest.
 2. The `plammih` Service external IP and its port 80 -> Pod port 3000 mapping.
 3. Cloudflare's proxied DNS record for `dunesub.de` resolves to that exact origin IP (or the documented origin load balancer).
