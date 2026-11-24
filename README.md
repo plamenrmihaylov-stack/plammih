@@ -4,47 +4,45 @@ Ecosystem and cyberspace for forced forks to the cloud.
 
 ## Public professional identity website
 
-The GKE-hosted Node.js application serves the DuneSub professional identity website through the intended Cloudflare proxy -> GKE Service -> application path.
+The intended public request path is:
+
+`Browser -> Cloudflare reverse proxy -> GKE external LoadBalancer Service -> plammih Pods (TCP 3000)`
+
+The Kubernetes Service exposes port 80 and forwards to container port 3000. Cloudflare can proxy to the external IP assigned to that Service; an Ingress controller is not implied by the current manifests. The actual live Cloudflare origin target and TLS settings must be verified in the provider control planes before release.
 
 - `/` serves the professional profile and Schema.org JSON-LD.
 - `/robots.txt` publishes crawler directives and the sitemap location.
 - `/sitemap.xml` publishes the canonical homepage URL.
 - `/healthz` remains the Kubernetes health-check endpoint.
 
-The Cloudflare Worker entry point is a separate target and is not assumed to serve the canonical website origin. See [the identity implementation notes](docs/identity-implementation.md).
+The Cloudflare Worker in `wrangler.toml` is a separate deployment target and is not assumed to serve the canonical website origin. See [the identity implementation notes](docs/identity-implementation.md).
 
 ## Application and HTTP headers
 
-The HTTP server is implemented directly in `server.mjs`. It listens on `0.0.0.0` and uses the `PORT` environment variable (default `3000`) so it can run in a container. The Kubernetes Service exposes port 80 and forwards traffic to the named container port.
+The HTTP server is implemented in `server.mjs`. It listens on `0.0.0.0` and uses `PORT` (default `3000`). Application responses set defensive headers including `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, a restrictive `Content-Security-Policy`, and explicit cache controls. The application does not intentionally advertise a server banner; a `Server` header observed at the public edge may be added by Cloudflare or the GKE load-balancing path.
 
-Application responses set defensive headers including `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, a restrictive `Content-Security-Policy`, and explicit cache controls. The Node application does not intentionally advertise a server banner. A `Server` header observed in production may be added by an upstream proxy/load balancer or by a different image; verify the deployed image digest and inspect the response at each hop before attributing it to this application.
+## Google Kubernetes Engine
 
-## Google Kubernetes Engine deployment
+The manifests in `k8s/` define a Deployment and a `type: LoadBalancer` Service. There is no Ingress resource in this repository. The Service external IP is the expected Cloudflare origin endpoint, subject to confirmation against the live Cloudflare DNS record.
 
-The repository includes a Docker image build and GKE deployment pipeline in `cloudbuild.yml`, plus Kubernetes resources in `k8s/`. The deployment manifest currently defines a direct `LoadBalancer` Service; this repository does not include an Ingress or ingress-controller configuration. Do not assume an NGINX ingress or sidecar is configured by these files.
-
-### Defaults
-
-- Google Cloud project: `driven-crawler-502217f6`
-- Artifact Registry region: `europe-west1`
-- Artifact Registry repository: `dunesub-artifact-repo`
+Configuration defaults (not proof of live resource identity):
+- GCP project: `driven-crawler-502217f6`
+- Artifact Registry: `europe-west1/dunesub-artifact-repo`
 - GKE cluster: `plammih-gke`
 - GKE location: `europe-west1`
 
-These are configuration defaults, not confirmation that the resources already exist.
+## Build and release separation
 
-### Build and deploy
+- `cloudbuild.yml` builds and pushes a uniquely tagged image. It does not deploy.
+- `cloudbuild-deploy.yml` is a separate release pipeline and must be invoked explicitly with a reviewed image tag. It checks the expected project and cluster before applying the Kubernetes manifests.
+- Pull-request CI runs tests and a Docker build only. It has no deployment credentials or deployment step.
 
-Configure a Cloud Build trigger for the intended deployment branch only after review and approval. The build pipeline includes a GKE deployment step; do not trigger it for this review branch.
-
-The Kubernetes Service is `type: LoadBalancer`, which provisions an external load balancer and may incur charges. For production, terminate TLS at a deliberately configured HTTPS-capable edge and verify which hop adds response headers.
+Never point a deployment trigger at an unreviewed branch. Verify the actual production cluster and Cloudflare origin mapping before running the release pipeline. See [deployment and origin verification](docs/identity-implementation.md#operational-verification-checklist).
 
 ## Validation
 
-Run the local application tests with:
+Run the application tests with:
 
 ```bash
 node --test tests/server.test.mjs
 ```
-
-The identity website CI workflow runs this validation on relevant pull requests and pushes to `main`. This branch does not change production infrastructure or deploy the application.
