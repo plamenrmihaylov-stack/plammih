@@ -1,10 +1,11 @@
 # SHA-256 baseline for tracked source/configuration files.
 # Format: <64 lowercase hex characters><two spaces><repository-relative path>
 # Update only after reviewing the intended file changes.
-9cf88db6a3ae7ff909e3e15d82185e3b7a961dcd3f8f9bd7bd3719d2789d18fb  README.md
-5d8523ef830aa71bf02268d8dcdffbef92156175f0b9878b7e3873b2c266f367  cloudbuild.yml
+227c88a761cf3cac44093ad077fade98c442f1f53de88c7e0b8d936617dbccd4  README.md
+564f880d2ce9dd48a6f706418db7f203ea476d92a3f147a00c08255e242913c9  cloudbuild.yml
+0f6b1dbed616c51082b074a26e90b36d893918ac1b137f74ca67d8e2b8990cbb  cloudbuild-deploy.yml
 b112ee6261939c8419786f1c0ba96df82a4a8235957eb996369a6a144753176a  k8s/deployment.yml
 cc051c313943bf0db75fc8e5ccff0e278feecf11b3b90f67454cc21d7c9bb792  k8s/network-policy.yml
-a5663fd7b73cc7643199a73f6d3f50ed2ab5ae9be579600c7e9d5c505979902d  server.mjs
+128ccb3b052a7cf8d6740e8cf6c0c9fac0b071793c19fff2fcbe63aeeb1a5e04  server.mjs
 98524702d54d6b2779cee729a3c160c07312f86ace51cb8ffc0d987e4e87113e  worker.mjs
 ef5be1afc9c865ab36a9041bfbd0ad3499829bd6a5c6a6d59c4ee26d88e9f722  package.json
