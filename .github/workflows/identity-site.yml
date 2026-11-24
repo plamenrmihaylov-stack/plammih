@@ -1,0 +1,45 @@
+name: Identity website validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "server.mjs"
+      - "public/**"
+      - "tests/server.test.mjs"
+      - "Dockerfile"
+      - "cloudbuild.yml"
+      - "cloudbuild-deploy.yml"
+      - ".github/workflows/identity-site.yml"
+  push:
+    branches: [main]
+    paths:
+      - "server.mjs"
+      - "public/**"
+      - "tests/server.test.mjs"
+      - "Dockerfile"
+      - "cloudbuild.yml"
+      - "cloudbuild-deploy.yml"
+      - ".github/workflows/identity-site.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: identity-site-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Test HTTP application and identity metadata
+        run: node --test tests/server.test.mjs
+      - name: Build container image (no push, no deploy)
+        run: docker build --tag plammih:ci .

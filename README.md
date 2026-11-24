@@ -2,83 +2,52 @@
 
 Ecosystem and cyberspace for forced forks to the cloud.
 
+## Public professional identity website
+
+The intended public request path is:
+
+`Browser -> Cloudflare reverse proxy -> GKE external LoadBalancer Service -> plammih Pods (TCP 3000)`
+
+The Kubernetes Service exposes port 80 and forwards to container port 3000. Cloudflare can proxy to the external IP assigned to that Service; an Ingress controller is not implied by the current manifests. The actual live Cloudflare origin target and TLS settings must be verified in the provider control planes before release.
+
+- `/` serves the professional profile and Schema.org JSON-LD.
+- `/robots.txt` publishes crawler directives and the sitemap location.
+- `/sitemap.xml` publishes the canonical homepage URL.
+- `/healthz` remains the Kubernetes health-check endpoint.
+
+The Cloudflare Worker in `wrangler.toml` is a separate deployment target and is not assumed to serve the canonical website origin. See [the identity implementation notes](docs/identity-implementation.md).
+
 ## Application and HTTP headers
 
-The HTTP server is implemented directly in `server.mjs`. It listens on `0.0.0.0` and uses the `PORT` environment variable (default `3000`) so it can run in a container. The Kubernetes Service exposes port 80 and forwards traffic to the named container port.
+The HTTP server is implemented in `server.mjs`. It listens on `0.0.0.0` and uses `PORT` (default `3000`). Application responses set defensive headers including `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, a restrictive `Content-Security-Policy`, and explicit cache controls. The application does not intentionally advertise a server banner; a `Server` header observed at the public edge may be added by Cloudflare or the GKE load-balancing path.
 
-Application responses set defensive headers including `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, a restrictive `Content-Security-Policy`, and `Cache-Control: no-store`. The Node application does not intentionally advertise a server banner. A `Server` header observed in production may be added by an upstream proxy/load balancer or by a different image; verify the deployed image digest and inspect the response at each hop before attributing it to this application.
+## Google Kubernetes Engine targets
 
-## Google Kubernetes Engine deployment
+The deployment topology has two distinct GKE targets:
 
-The repository includes a Docker image build and GKE deployment pipeline in `cloudbuild.yml`, plus Kubernetes resources in `k8s/`. The deployment manifest currently defines a direct `LoadBalancer` Service; this repository does not include an Ingress or ingress-controller configuration. Do not assume an NGINX ingress or sidecar is configured by these files.
+| Role | GCP project | GKE location | Cluster |
+|---|---|---|---|
+| Primary production | `dune-sub-core-prod` | `europe-west3` | `dune-sub-vpc-cluster` |
+| Active organizational replica | `driven-crawler-502217f6` | `europe-west1` | `plammih-gke` |
 
-### Defaults
+The image is built and published in the organizational project to Artifact Registry at `europe-west1-docker.pkg.dev/driven-crawler-502217f6/dunesub-artifact-repo/plammih`. The production deployment pipeline consumes that image cross-project; the production cluster/node identity must have Artifact Registry read access, and the Cloud Build identity must have least-privilege access to deploy into the production project. These IAM bindings are prerequisites, not assumed facts.
 
-- Google Cloud project: `driven-crawler-502217f6`
-- Artifact Registry region: `europe-west1`
-- Artifact Registry repository: `dunesub-artifact-repo`
-- GKE cluster: `plammih-gke`
-- GKE location: `europe-west1`
+The manifests in `k8s/` define a Deployment and a `type: LoadBalancer` Service. There is no Ingress resource in this repository. The Service external IP is the expected Cloudflare origin endpoint, subject to confirmation against the live Cloudflare DNS record.
 
-These are configuration defaults, not confirmation that the resources already exist. The Cloud Build substitution `_AR_REPOSITORY` and image placeholder in `k8s/deployment.yml` use the canonical repository name `dunesub-artifact-repo`. If changing the registry location or repository, update both the substitution and image placeholder together.
+## Build and release separation
 
-### One-time Google Cloud setup
+- `cloudbuild.yml` builds and pushes a uniquely tagged image in the organizational project. It does not deploy.
+- `cloudbuild-deploy-production.yml` is the explicit primary-production release pipeline (`dune-sub-core-prod` / `europe-west3` / `dune-sub-vpc-cluster`).
+- `cloudbuild-deploy.yml` is the explicit organizational-replica release pipeline (`driven-crawler-502217f6` / `europe-west1` / `plammih-gke`).
+- Both deployment pipelines require an explicit reviewed image tag and verify the intended target before applying Kubernetes manifests.
+- Pull-request CI runs tests and a Docker build only. It has no deployment credentials and cannot deploy.
 
-Run these commands from an authenticated Google Cloud CLI session with permission to enable APIs, create Artifact Registry repositories and GKE clusters, and grant IAM roles. Confirm billing is enabled first.
+Deploy primary production first, verify application health and the Cloudflare origin path, then deploy the same reviewed image tag to the organizational replica. Never point an automatic deployment trigger at an unreviewed branch. See [deployment and origin verification](docs/identity-implementation.md#operational-verification-checklist).
 
-```bash
-gcloud config set project driven-crawler-502217f6
+## Validation
 
-gcloud services enable \
-  cloudbuild.googleapis.com \
-  artifactregistry.googleapis.com \
-  container.googleapis.com
-
-gcloud artifacts repositories create dunesub-artifact-repo \
-  --repository-format=docker \
-  --location=europe-west1 \
-  --description="Container images for plammih"
-
-# Create a regional Autopilot cluster only if one does not already exist.
-gcloud container clusters create-auto plammih-gke \
-  --region=europe-west1 \
-  --project=driven-crawler-502217f6
-```
-
-If a cluster or repository already exists, inspect it instead of creating another:
+Run the application tests with:
 
 ```bash
-gcloud container clusters list --project=driven-crawler-502217f6
-gcloud artifacts repositories list --project=driven-crawler-502217f6 --location=europe-west1
+node --test tests/server.test.mjs
 ```
-
-### Cloud Build permissions
-
-The Cloud Build service account needs permission to write images to Artifact Registry and deploy workloads to the selected GKE cluster. Grant least-privilege roles to the actual service account used by the build (the account can vary by project configuration):
-
-- Artifact Registry Writer (`roles/artifactregistry.writer`) scoped to repository `dunesub-artifact-repo`
-- Kubernetes Engine Developer (`roles/container.developer`) on the project/cluster
-- Service Account User (`roles/iam.serviceAccountUser`) on the GKE node/workload service account if required by your cluster's IAM configuration
-
-Check the active Cloud Build service account in Google Cloud Console before applying IAM bindings. Do not commit service-account keys or credentials to this repository.
-
-### Build and deploy
-
-Configure a Cloud Build trigger for this GitHub repository on branch `main`, using `cloudbuild.yml`. The defaults above can be overridden in the trigger's substitution variables (`_AR_LOCATION`, `_AR_REPOSITORY`, `_GKE_LOCATION`, and `_GKE_CLUSTER`). The canonical default for `_AR_REPOSITORY` is `dunesub-artifact-repo`.
-
-To run a build manually from a local checkout with Google Cloud CLI authenticated:
-
-```bash
-gcloud builds submit . \
-  --project=driven-crawler-502217f6 \
-  --region=europe-west1 \
-  --config=cloudbuild.yml
-```
-
-The Kubernetes Service is `type: LoadBalancer`, which provisions an external load balancer and may incur charges. After deployment, get its external IP with:
-
-```bash
-kubectl get service plammih
-```
-
-For production, terminate TLS at a deliberately configured HTTPS-capable edge, enforce an appropriate security policy there, and verify which hop adds response headers. This repository currently defines a direct HTTP LoadBalancer and does not configure TLS, an Ingress, or a proxy sidecar. Do not add HSTS until HTTPS is correctly enforced for the public endpoint.

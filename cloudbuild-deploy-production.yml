@@ -1,0 +1,46 @@
+# Explicit primary production release pipeline.
+# The build/image project hosts Artifact Registry; deployment targets the production GKE project.
+substitutions:
+  _IMAGE_PROJECT_ID: driven-crawler-502217f6
+  _TARGET_PROJECT_ID: dune-sub-core-prod
+  _GKE_LOCATION: europe-west3
+  _GKE_CLUSTER: dune-sub-vpc-cluster
+  _AR_LOCATION: europe-west1
+  _AR_REPOSITORY: dunesub-artifact-repo
+  _IMAGE_TAG: REPLACE_WITH_REVIEWED_COMMIT_SHA
+
+steps:
+  - id: Verify primary production target
+    name: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        if [[ "$PROJECT_ID" != "${_IMAGE_PROJECT_ID}" ]]; then
+          echo "Refusing production deployment: run this build in image project '${_IMAGE_PROJECT_ID}', not '$PROJECT_ID'." >&2
+          exit 1
+        fi
+        if [[ "${_IMAGE_TAG}" == "REPLACE_WITH_REVIEWED_COMMIT_SHA" ]]; then
+          echo "Refusing deployment: provide _IMAGE_TAG from a reviewed build." >&2
+          exit 1
+        fi
+        gcloud container clusters describe "${_GKE_CLUSTER}" \
+          --project="${_TARGET_PROJECT_ID}" \
+          --location="${_GKE_LOCATION}" \
+          --format='value(name)' | grep -Fx "${_GKE_CLUSTER}"
+        gcloud artifacts docker images describe \
+          "${_AR_LOCATION}-docker.pkg.dev/${_IMAGE_PROJECT_ID}/${_AR_REPOSITORY}/plammih:${_IMAGE_TAG}" \
+          --project="${_IMAGE_PROJECT_ID}" >/dev/null
+
+  - id: Deploy reviewed image to primary production
+    name: gcr.io/cloud-builders/gke-deploy
+    args:
+      - run
+      - --filename=k8s
+      - --image=${_AR_LOCATION}-docker.pkg.dev/${_IMAGE_PROJECT_ID}/${_AR_REPOSITORY}/plammih:${_IMAGE_TAG}
+      - --project=${_TARGET_PROJECT_ID}
+      - --location=${_GKE_LOCATION}
+      - --cluster=${_GKE_CLUSTER}
+
+options:
+  logging: CLOUD_LOGGING_ONLY

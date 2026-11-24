@@ -1,10 +1,7 @@
-# Build, publish, and deploy plammih to GKE.
-# Defaults target europe-west1; override substitutions in the Cloud Build trigger if needed.
+# Build and publish a uniquely tagged plammih image. This pipeline does not deploy to GKE.
 substitutions:
   _AR_LOCATION: europe-west1
   _AR_REPOSITORY: dunesub-artifact-repo
-  _GKE_LOCATION: europe-west1
-  _GKE_CLUSTER: plammih-gke
 
 steps:
   - id: Build container
@@ -20,15 +17,6 @@ steps:
     args:
       - push
       - ${_AR_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/plammih:$SHORT_SHA
-
-  - id: Deploy to GKE
-    name: gcr.io/cloud-builders/gke-deploy
-    args:
-      - run
-      - --filename=k8s
-      - --image=${_AR_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/plammih:$SHORT_SHA
-      - --location=${_GKE_LOCATION}
-      - --cluster=${_GKE_CLUSTER}
 
 images:
   - ${_AR_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/plammih:$SHORT_SHA
