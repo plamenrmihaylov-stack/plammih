@@ -25,7 +25,7 @@ const server = createServer(async (req, res) => {
 
   if (method !== 'GET' && method !== 'HEAD') {
     res.writeHead(405, { ...securityHeaders, 'Content-Type': 'text/plain; charset=utf-8', Allow: 'GET, HEAD' });
-    res.end(method === 'HEAD' ? undefined : 'Method Not Allowed\\n');
+    res.end(method === 'HEAD' ? undefined : 'Method Not Allowed\n');
     return;
   }
 
@@ -35,14 +35,14 @@ const server = createServer(async (req, res) => {
       'Content-Type': 'text/plain; charset=utf-8',
       'Cache-Control': 'no-store',
     });
-    res.end(method === 'HEAD' ? undefined : 'ok\\n');
+    res.end(method === 'HEAD' ? undefined : 'ok\n');
     return;
   }
 
   const route = routes.get(url.pathname);
   if (!route) {
     res.writeHead(404, { ...securityHeaders, 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(method === 'HEAD' ? undefined : 'Not Found\\n');
+    res.end(method === 'HEAD' ? undefined : 'Not Found\n');
     return;
   }
 
@@ -57,10 +57,10 @@ const server = createServer(async (req, res) => {
   } catch (error) {
     console.error('Failed to serve public asset:', error);
     res.writeHead(500, { ...securityHeaders, 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(method === 'HEAD' ? undefined : 'Internal Server Error\\n');
+    res.end(method === 'HEAD' ? undefined : 'Internal Server Error\n');
   }
 });
 
 server.listen(port, '0.0.0.0', () => {
-  console.log(`Listening on 0.0.0.0:${port}`);
+  console.log(\`Listening on 0.0.0.0:\${port}\`);
 });
